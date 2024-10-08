@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.hardware.usb.*
-import android.os.Build
 import android.util.Base64
 import android.util.Log
 import android.widget.Toast
@@ -22,7 +21,7 @@ class USBPrinterAdapter {
     private val LOG_TAG = "Flutter USB Printer"
     private var mContext: Context? = null
     private var mUSBManager: UsbManager? = null
-    private var mPermissionIntent: PendingIntent? = null
+    private var mPermissionIndent: PendingIntent? = null
     private var mUsbDevice: UsbDevice? = null
     private var mUsbDeviceConnection: UsbDeviceConnection? = null
     private var mUsbInterface: UsbInterface? = null
@@ -42,8 +41,8 @@ class USBPrinterAdapter {
 
     private val mUsbDeviceReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            var action = intent.getAction();
-            if (ACTION_USB_PERMISSION.equals(action)) {
+            val action = intent.action
+            if (ACTION_USB_PERMISSION == action) {
                 synchronized(this) {
                     val usbDevice =
                         intent.getParcelableExtra<UsbDevice>(UsbManager.EXTRA_DEVICE)
@@ -74,13 +73,8 @@ class USBPrinterAdapter {
     fun init(reactContext: Context?) {
         mContext = reactContext
         mUSBManager = mContext!!.getSystemService(Context.USB_SERVICE) as UsbManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            mPermissionIntent =
-                PendingIntent.getBroadcast(mContext, 0, Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
-        } else {
-            mPermissionIntent =
-                PendingIntent.getBroadcast(mContext, 0, Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_UPDATE_CURRENT)
-        }
+        mPermissionIndent =
+            PendingIntent.getBroadcast(mContext, 0, Intent(ACTION_USB_PERMISSION), 0)
         val filter = IntentFilter(ACTION_USB_PERMISSION)
         filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
         mContext!!.registerReceiver(mUsbDeviceReceiver, filter)
@@ -122,7 +116,7 @@ class USBPrinterAdapter {
                         "Request for device: vendor_id: " + usbDevice.vendorId + ", product_id: " + usbDevice.productId
                     )
                     closeConnectionIfExists()
-                    mUSBManager!!.requestPermission(usbDevice, mPermissionIntent)
+                    mUSBManager!!.requestPermission(usbDevice, mPermissionIndent)
                     return true
                 }
             }
@@ -133,7 +127,7 @@ class USBPrinterAdapter {
 
     private fun openConnection(): Boolean {
         if (mUsbDevice == null) {
-            Log.e(LOG_TAG, "USB Device is not initialized")
+            Log.e(LOG_TAG, "USB Deivce is not initialized")
             return false
         }
         if (mUSBManager == null) {
@@ -168,7 +162,7 @@ class USBPrinterAdapter {
                 }
             }
         }
-        return false
+        return true
     }
 
     fun printText(text: String): Boolean {
